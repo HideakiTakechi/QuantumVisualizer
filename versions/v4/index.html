@@ -92,6 +92,61 @@
             if (s === 'T') return 'T';
             return null;
         }
+        
+        // v4 URL正規化（Task2: Appには未接続）
+        function normalizeInit(rawInit, spec = URL_SPEC) {
+            const fallback = spec.defaults.init;
+            if (typeof rawInit !== 'string') return fallback;
+            const value = rawInit.trim().toLowerCase();
+            return spec.allowedInit.includes(value) ? value : fallback;
+        }
+        
+        function normalizeGates(rawGates, spec = URL_SPEC) {
+            if (typeof rawGates !== 'string' || rawGates.trim() === '') return [];
+            return rawGates
+                .split(',')
+                .map((g) => g.trim().toUpperCase())
+                .filter((g) => spec.allowedGates.includes(g))
+                .slice(0, spec.limits.maxGates);
+        }
+        
+        function normalizeTitle(rawTitle, spec = URL_SPEC) {
+            if (typeof rawTitle !== 'string') return spec.defaults.title;
+            return rawTitle.trim().slice(0, spec.limits.maxTitleLength);
+        }
+        
+        function normalizeMode(rawMode, spec = URL_SPEC) {
+            const fallback = spec.defaults.mode;
+            if (typeof rawMode !== 'string') return fallback;
+            const value = rawMode.trim().toLowerCase();
+            return spec.allowedMode.includes(value) ? value : fallback;
+        }
+        
+        function parseUrlConfig(search, spec = URL_SPEC) {
+            const params = new URLSearchParams(typeof search === 'string' ? search : '');
+            const rawInit = params.get('init');
+            const rawGates = params.get('gates');
+            const rawTitle = params.get('title');
+            const rawMode = params.get('mode');
+            
+            const config = {
+                init: normalizeInit(rawInit, spec),
+                gates: normalizeGates(rawGates, spec),
+                title: normalizeTitle(rawTitle, spec),
+                mode: normalizeMode(rawMode, spec),
+            };
+            
+            const warnings = [];
+            if (rawInit !== null && config.init !== rawInit.trim().toLowerCase()) warnings.push('init');
+            if (rawMode !== null && config.mode !== rawMode.trim().toLowerCase()) warnings.push('mode');
+            if (typeof rawTitle === 'string' && rawTitle.trim().length > config.title.length) warnings.push('title');
+            if (rawGates !== null) {
+                const requestedCount = rawGates.split(',').map((g) => g.trim()).filter((g) => g !== '').length;
+                if (requestedCount !== config.gates.length) warnings.push('gates');
+            }
+            
+            return { config, warnings };
+        }
 
         function multiplyMatrixVector(M, v) {
             return [
