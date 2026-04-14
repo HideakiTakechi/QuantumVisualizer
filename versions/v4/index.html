@@ -50,6 +50,15 @@
         const ONE = C(1);
         const I = C(0, 1);
         const SQRT2_INV = C(1 / Math.SQRT2);
+        
+        // v4 URL仕様（Task1: 定数定義のみ。挙動はまだ変更しない）
+        const URL_SPEC = {
+            allowedInit: ['zero', 'one', 'plus', 'minus', 'iplus', 'iminus'],
+            allowedGates: ['I', 'X', 'Y', 'Z', 'H', 'S', 'T'],
+            allowedMode: ['drill', 'qcoder'],
+            defaults: { init: 'zero', gates: [], title: '', mode: 'drill' },
+            limits: { maxGates: 10, maxTitleLength: 40 },
+        };
 
         const GATES = {
             'I': [[ONE, ZERO], [ZERO, ONE]],
