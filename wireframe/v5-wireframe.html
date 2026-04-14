@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1Qubit 可視化ツール ワイヤーフレーム</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --line: #d9e1ee;
+      --text: #233044;
+      --muted: #6b7a90;
+      --accent: #2f6fed;
+      --accent-soft: #eaf1ff;
+      --shadow: 0 8px 24px rgba(24, 39, 75, 0.08);
+      --radius: 18px;
+      --red: #d8134f;
+      --blue: #2f6fed;
+      --gold: #f0ad3d;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+
+    .title {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    .title h1 {
+      margin: 0;
+      font-size: 34px;
+      letter-spacing: 0.02em;
+    }
+    .title p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .controls {
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1.2fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .input, .select, .button, .ghost {
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .ghost {
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .control-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .state-bar {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      gap: 12px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+    }
+
+    .mini-card {
+      background: #fbfcff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      min-height: 82px;
+    }
+
+    .mini-card .k {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .formula {
+      font-family: "Consolas", "Menlo", monospace;
+      font-size: 15px;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 0.46fr 1fr;
+      gap: 18px;
+    }
+
+    .state-panel {
+      padding: 16px;
+    }
+
+    .center-panel {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 760px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section-head h2 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .badge {
+      font-size: 12px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-weight: 700;
+    }
+
+    .card-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+      margin: 2px 0 10px;
+    }
+
+    .canvas {
+      background: linear-gradient(180deg, #fbfdff 0%, #f4f8ff 100%);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      height: 320px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .canvas + .canvas {
+      margin-top: 14px;
+      height: 240px;
+    }
+
+    .caption {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    .bloch-axis {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sphere {
+      width: 220px;
+      height: 220px;
+      border: 1.5px solid #cdd7e6;
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .sphere::before, .sphere::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 1px dashed #cdd7e6;
+      border-radius: 50%;
+    }
+
+    .sphere::before {
+      width: 220px;
+      height: 82px;
+    }
+
+    .sphere::after {
+      width: 82px;
+      height: 220px;
+    }
+
+    .axis-h, .axis-v, .axis-d1, .axis-d2 {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform-origin: center;
+      background: #c7d3e4;
+    }
+
+    .axis-h { width: 238px; height: 1.5px; transform: translate(-50%, -50%); }
+    .axis-v { width: 1.5px; height: 238px; transform: translate(-50%, -50%); }
+    .axis-d1 { width: 224px; height: 1.5px; transform: translate(-50%, -50%) rotate(35deg); }
+    .axis-d2 { width: 224px; height: 1.5px; transform: translate(-50%, -50%) rotate(-35deg); }
+
+    .vector {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 4px;
+      height: 100px;
+      background: linear-gradient(180deg, #ff8a8a 0%, var(--red) 100%);
+      border-radius: 999px;
+      transform-origin: bottom center;
+      box-shadow: 0 0 0 2px rgba(216, 19, 79, 0.08);
+    }
+
+    .vector::before {
+      content: "";
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 16px solid var(--red);
+    }
+
+    .v-before { transform: translate(-50%, -100%) rotate(0deg); }
+    .v-after { transform: translate(-50%, -100%) rotate(180deg); }
+
+    .z-wave {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to right, transparent 0 11.8%, #dfe6f2 12%, transparent 12.2%, transparent 87.8%, #dfe6f2 88%, transparent 88.2%),
+        linear-gradient(to bottom, transparent 0 18px, #eef3fb 18px 19px, transparent 19px),
+        linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%);
+    }
+
+    .z-wave::before {
+      content: "z";
+      position: absolute;
+      right: 22px;
+      top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .wave-perspective {
+      position: absolute;
+      inset: 0;
+    }
+
+    .wave-perspective svg {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+    }
+
+    .gate-card {
+      background: #fbfcff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .gate-symbol {
+      height: 110px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 56px;
+      font-weight: 800;
+      margin-bottom: 14px;
+      background: linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%);
+    }
+
+    .gate-desc {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .math-box {
+      font-family: "Consolas", "Menlo", monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      padding: 12px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-top: 12px;
+      white-space: pre-line;
+      text-align: left;
+    }
+
+    .arrow-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--accent);
+      font-weight: 700;
+      margin-top: 14px;
+      margin-bottom: 14px;
+    }
+
+    .arrow-line {
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--accent) 18%, var(--accent) 82%, transparent 100%);
+      position: relative;
+    }
+
+    .arrow-line::after {
+      content: "";
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-left: 10px solid var(--accent);
+    }
+
+    @media (max-width: 1080px) {
+      .control-grid,
+      .state-bar,
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      .center-panel {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="title">
+      <h1>量子状態 × ブロッホ球 × 偏光波</h1>
+      <p>1Qubit 学習用ワイヤーフレーム（状態変化を左右比較）</p>
+    </div>
+
+    <section class="panel controls">
+      <div class="control-grid">
+        <div class="field">
+          <label>初期状態</label>
+          <select class="select" style="width:100%">
+            <option>|0⟩</option>
+            <option>|1⟩</option>
+            <option>|+⟩</option>
+            <option>|-⟩</option>
+            <option>|i⟩</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>適用ゲート</label>
+          <select class="select" style="width:100%">
+            <option>X</option>
+            <option>Y</option>
+            <option>Z</option>
+            <option>H</option>
+            <option>S</option>
+            <option>T</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>θ / φ</label>
+          <input class="input" style="width:100%" value="θ = 0 , φ = 0" />
+        </div>
+        <button class="button">1ステップ実行</button>
+      </div>
+
+      <div class="control-actions">
+        <button class="ghost">再生</button>
+        <button class="ghost">一時停止</button>
+        <button class="ghost">リセット</button>
+        <button class="ghost">軌跡ON</button>
+      </div>
+    </section>
+
+    <section class="panel state-bar">
+      <div class="mini-card">
+        <div class="k">状態式</div>
+        <div class="formula">前: |0⟩
+後: |1⟩</div>
+      </div>
+      <div class="mini-card">
+        <div class="k">α</div>
+        <div class="formula">前: 1.000
+後: 0.000</div>
+      </div>
+      <div class="mini-card">
+        <div class="k">β</div>
+        <div class="formula">前: 0.000
+後: 1.000</div>
+      </div>
+      <div class="mini-card">
+        <div class="k">測定確率</div>
+        <div class="formula">前: P(1)=0.0
+後: P(1)=1.0</div>
+      </div>
+    </section>
+
+    <section class="main">
+      <div class="panel state-panel">
+        <div class="section-head">
+          <h2>左カードの量子状態</h2>
+          <span class="badge">操作前</span>
+        </div>
+        <div class="card-label">ブロッホ球</div>
+        <div class="canvas">
+          <div class="bloch-axis">
+            <div class="sphere">
+              <div class="axis-h"></div>
+              <div class="axis-v"></div>
+              <div class="axis-d1"></div>
+              <div class="axis-d2"></div>
+              <div class="vector v-before"></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">|0⟩</div>
+
+        <div class="card-label" style="margin-top:16px;">偏光波</div>
+        <div class="canvas">
+          <div class="z-wave"></div>
+          <div class="wave-perspective">
+            <svg viewBox="0 0 520 240" preserveAspectRatio="none">
+              <polyline points="62,198 120,176 178,156 236,138 294,122 352,108 410,96 468,86"
+                        fill="none" stroke="#d5dfef" stroke-width="2" />
+              <polyline points="62,198 120,176 178,156 236,138 294,122 352,108 410,96 468,86"
+                        fill="none" stroke="#d5dfef" stroke-width="2" transform="translate(0,-76)" />
+              <path d="M62,198 C90,160 110,130 120,176 C148,214 168,184 178,156 C206,118 226,88 236,138 C264,188 284,158 294,122 C322,86 342,56 352,108 C380,160 400,130 410,96 C438,62 456,44 468,86"
+                    fill="none" stroke="var(--red)" stroke-width="4" />
+              <path d="M62,198 C90,198 110,176 120,176 C148,176 168,156 178,156 C206,156 226,138 236,138 C264,138 284,122 294,122 C322,122 342,108 352,108 C380,108 400,96 410,96 C438,96 456,86 468,86"
+                    fill="none" stroke="var(--blue)" stroke-width="4" opacity="0.25" />
+            </svg>
+          </div>
+        </div>
+        <div class="caption">Z軸方向に進む 2成分波</div>
+      </div>
+
+      <div class="panel center-panel">
+        <div class="section-head">
+          <h2>ゲート情報</h2>
+          <span class="badge">変換</span>
+        </div>
+
+        <div class="gate-card">
+          <div class="gate-symbol">X</div>
+          <div class="gate-desc">
+            x軸まわりに π 回転。<br />
+            |0⟩ を |1⟩ に、|1⟩ を |0⟩ に移す。
+          </div>
+          <div class="math-box">前: |0⟩
+後: X|0⟩ = |1⟩</div>
+        </div>
+
+        <div class="arrow-flow">
+          <span>左状態</span>
+          <div class="arrow-line"></div>
+          <span>右状態</span>
+        </div>
+      </div>
+
+      <div class="panel state-panel">
+        <div class="section-head">
+          <h2>右カードの量子状態</h2>
+          <span class="badge">操作後</span>
+        </div>
+        <div class="card-label">ブロッホ球</div>
+        <div class="canvas">
+          <div class="bloch-axis">
+            <div class="sphere">
+              <div class="axis-h"></div>
+              <div class="axis-v"></div>
+              <div class="axis-d1"></div>
+              <div class="axis-d2"></div>
+              <div class="vector v-after"></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">|1⟩</div>
+
+        <div class="card-label" style="margin-top:16px;">偏光波</div>
+        <div class="canvas">
+          <div class="z-wave"></div>
+          <div class="wave-perspective">
+            <svg viewBox="0 0 520 240" preserveAspectRatio="none">
+              <polyline points="62,198 120,176 178,156 236,138 294,122 352,108 410,96 468,86"
+                        fill="none" stroke="#d5dfef" stroke-width="2" />
+              <polyline points="62,198 120,176 178,156 236,138 294,122 352,108 410,96 468,86"
+                        fill="none" stroke="#d5dfef" stroke-width="2" transform="translate(0,-76)" />
+              <path d="M62,198 C90,198 110,176 120,176 C148,176 168,156 178,156 C206,156 226,138 236,138 C264,138 284,122 294,122 C322,122 342,108 352,108 C380,108 400,96 410,96 C438,96 456,86 468,86"
+                    fill="none" stroke="var(--red)" stroke-width="4" opacity="0.25" />
+              <path d="M62,198 C90,160 110,130 120,176 C148,214 168,184 178,156 C206,118 226,88 236,138 C264,188 284,158 294,122 C322,86 342,56 352,108 C380,160 400,130 410,96 C438,62 456,44 468,86"
+                    fill="none" stroke="var(--blue)" stroke-width="4" />
+            </svg>
+          </div>
+        </div>
+        <div class="caption">Z軸方向に進む 2成分波</div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
